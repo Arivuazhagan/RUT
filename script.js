@@ -106,5 +106,14 @@ function refreshActiveChart() {
 
 function updateLastUpdated() {
     const now = new Date();
-    document.querySelector('#last-updated span').textContent = now.toLocaleTimeString();
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    };
+    document.querySelector('#last-updated span').textContent = now.toLocaleString('en-US', options);
 }
