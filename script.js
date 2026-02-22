@@ -1,11 +1,6 @@
 const CONFIG = {
-    // Paste the Chart Embed Links (src attribute from the <iframe>) here
-    charts: {
-        minutes: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=151358683&format=interactive',
-        revenue: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=215857505&format=interactive',
-        impact: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=2134680678&format=interactive'
-    },
-    // How often to refresh the data (in milliseconds)
+    // The CSV Publish Link
+    csvUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pub?gid=587889392&single=true&output=csv',
     refreshInterval: 30000 // 30 seconds
 };
 
@@ -15,6 +10,13 @@ let slides = [];
 let dots = [];
 let prevBtn, nextBtn;
 
+// Chart Instances
+let charts = {
+    minutes: null,
+    revenue: null,
+    impact: null
+};
+
 // Initialize Dashboard
 document.addEventListener('DOMContentLoaded', () => {
     slides = document.querySelectorAll('.carousel-slide');
@@ -22,15 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     prevBtn = document.getElementById('prev-btn');
     nextBtn = document.getElementById('next-btn');
 
-    loadCharts();
     setupCarousel();
-    updateLastUpdated();
+    initCharts();
+    fetchAndUpdateCharts(); // Initial load
 
     // Auto refresh
-    setInterval(() => {
-        refreshActiveChart();
-        updateLastUpdated();
-    }, CONFIG.refreshInterval);
+    setInterval(fetchAndUpdateCharts, CONFIG.refreshInterval);
 });
 
 // Setup Carousel Interactions
@@ -67,53 +66,131 @@ function updateCarouselDOM() {
     nextBtn.disabled = currentSlide === slides.length - 1;
 }
 
-// Load Iframes for Charts
-function loadCharts() {
-    const containers = {
-        minutes: document.getElementById('chart-minutes'),
-        revenue: document.getElementById('chart-revenue'),
-        impact: document.getElementById('chart-impact')
-    };
+// ----- Chart.js Logic -----
 
-    for (const [key, value] of Object.entries(CONFIG.charts)) {
-        if (value && containers[key]) {
-            const iframe = document.createElement('iframe');
-            // Adding cache buster to bypass Google Sheets 5m cache if possible
-            iframe.src = value + '&t=' + new Date().getTime();
-            iframe.onload = () => {
-                const loader = containers[key].querySelector('.loader');
-                if (loader) loader.classList.add('hidden');
-            };
-            containers[key].appendChild(iframe);
-        } else if (containers[key]) {
-            const loader = containers[key].querySelector('.loader');
-            if (loader) loader.classList.add('hidden');
+// Common Chart Options for Pie
+const baseChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'bottom',
+            labels: {
+                color: '#f8fafc',
+                font: { family: 'Outfit', size: 12 }
+            }
+        },
+        tooltip: {
+            bodyFont: { family: 'Outfit' },
+            titleFont: { family: 'Outfit' }
         }
+    }
+};
+
+const colors = [
+    '#8b5cf6', '#c026d3', '#3b82f6', '#10b981', '#f59e0b',
+    '#ef4444', '#14b8a6', '#f43f5e', '#6366f1', '#ec4899'
+];
+
+function initCharts() {
+    Chart.defaults.color = '#f8fafc';
+
+    charts.minutes = new Chart(document.getElementById('minutesChart'), {
+        type: 'pie',
+        data: { labels: [], datasets: [{ data: [], backgroundColor: colors, borderWidth: 0 }] },
+        options: baseChartOptions
+    });
+
+    charts.revenue = new Chart(document.getElementById('revenueChart'), {
+        type: 'pie',
+        data: { labels: [], datasets: [{ data: [], backgroundColor: colors, borderWidth: 0 }] },
+        options: baseChartOptions
+    });
+
+    charts.impact = new Chart(document.getElementById('impactChart'), {
+        type: 'pie',
+        data: { labels: [], datasets: [{ data: [], backgroundColor: colors, borderWidth: 0 }] },
+        options: baseChartOptions
+    });
+}
+
+function parseCSV(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim() !== '');
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"(.*)"$/, '$1'));
+    return lines.slice(1).map(line => {
+        // Handle basic commas inside quotes.
+        // For production, a robust CSV library (like PapaParse) is recommended if data has complex quotes.
+        let values = [];
+        let inQuote = false;
+        let start = 0;
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] === '"') inQuote = !inQuote;
+            else if (line[i] === ',' && !inQuote) {
+                values.push(line.substring(start, i).trim().replace(/^"(.*)"$/, '$1'));
+                start = i + 1;
+            }
+        }
+        values.push(line.substring(start).trim().replace(/^"(.*)"$/, '$1'));
+
+        let obj = {};
+        headers.forEach((header, i) => { obj[header] = values[i] || ''; });
+        return obj;
+    });
+}
+
+async function fetchAndUpdateCharts() {
+    if (!CONFIG.csvUrl) return;
+
+    try {
+        const urlWithCacheBuster = CONFIG.csvUrl + '&t=' + new Date().getTime();
+        const response = await fetch(urlWithCacheBuster);
+        const data = await response.text();
+        const parsedData = parseCSV(data);
+
+        if (parsedData.length > 0) {
+            updateChartData(parsedData);
+            updateLastUpdated();
+        }
+    } catch (error) {
+        console.error('Error fetching data for charts:', error);
     }
 }
 
-// Refresh only the active chart to save bandwidth/flicker
-function refreshActiveChart() {
-    const keys = ['minutes', 'revenue', 'impact'];
-    const activeKey = keys[currentSlide];
-    const container = document.getElementById(`chart-${activeKey}`);
-    const iframe = container.querySelector('iframe');
+function updateChartData(data) {
+    // Expected column names based on the user's Sheet:
+    // "Asset", "Minuets", "Revenue", "No. of (Students Benefited)"
+    // Note: Adjust these perfectly if the CSV headers differ slightly.
 
-    if (iframe && CONFIG.charts[activeKey]) {
-        iframe.src = CONFIG.charts[activeKey] + '&t=' + new Date().getTime();
-    }
+    // Extract Arrays
+    const labels = data.map(row => row['Asset']).filter(l => l);
+    // Parse to float, treating empty/invalid strings as 0
+    const minutes = data.map(row => parseFloat(row['Minuets']) || 0);
+    const revenue = data.map(row => parseFloat(row['Revenue'].replace(/[^0-9.-]+/g, "")) || 0);
+    const impact = data.map(row => parseFloat(row['No. of (Students Benefited)']) || 0);
+
+    // Update Minutes Chart
+    charts.minutes.data.labels = labels;
+    charts.minutes.data.datasets[0].data = minutes;
+    charts.minutes.update();
+
+    // Update Revenue Chart
+    charts.revenue.data.labels = labels;
+    charts.revenue.data.datasets[0].data = revenue;
+    charts.revenue.update();
+
+    // Update Impact Chart
+    charts.impact.data.labels = labels;
+    charts.impact.data.datasets[0].data = impact;
+    charts.impact.update();
 }
 
 function updateLastUpdated() {
     const now = new Date();
     const options = {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
     };
     document.querySelector('#last-updated span').textContent = now.toLocaleString('en-US', options);
 }
