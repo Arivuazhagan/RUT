@@ -33,20 +33,20 @@
             <div class="carousel-container">
                 <div class="carousel-slide active" data-index="0">
                     <h3>Minutes Tracking</h3>
-                    <div class="iframe-container" id="chart-minutes">
-                        <div class="loader"></div>
+                    <div class="chart-wrapper">
+                        <canvas id="minutesChart"></canvas>
                     </div>
                 </div>
                 <div class="carousel-slide" data-index="1">
                     <h3>Revenue</h3>
-                    <div class="iframe-container" id="chart-revenue">
-                        <div class="loader"></div>
+                    <div class="chart-wrapper">
+                        <canvas id="revenueChart"></canvas>
                     </div>
                 </div>
                 <div class="carousel-slide" data-index="2">
                     <h3>Impact: Students Benefited</h3>
-                    <div class="iframe-container" id="chart-impact">
-                        <div class="loader"></div>
+                    <div class="chart-wrapper">
+                        <canvas id="impactChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -63,6 +63,7 @@
         </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="script.js"></script>
 </body>
 
