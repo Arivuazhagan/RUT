@@ -2,8 +2,8 @@ const CONFIG = {
     // Paste the Chart Embed Links (src attribute from the <iframe>) here
     charts: {
         minutes: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=151358683&format=interactive',
-        revenue: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=215857505&format=interactive',
-        impact: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=2134680678&format=interactive'
+        revenue: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=2134680678&format=interactive',
+        impact: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSO9h_PXmTNYI7KBNkEGoRzHeHdeZaha1tIB0LpaC_zs-J-Vr4tVv30AHYl85XqNdvZtgg_lMwe2Ent/pubchart?oid=215857505&format=interactive'
     },
     // How often to refresh the data (in milliseconds)
     refreshInterval: 30000 // 30 seconds
