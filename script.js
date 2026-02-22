@@ -145,8 +145,13 @@ async function fetchAndUpdateCharts() {
 
     try {
         const urlWithCacheBuster = CONFIG.csvUrl + '&t=' + new Date().getTime();
-        const response = await fetch(urlWithCacheBuster);
-        const data = await response.text();
+        // Use allorigins to bypass CORS 
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(urlWithCacheBuster)}`;
+
+        const response = await fetch(proxyUrl);
+        const json = await response.json();
+        const data = json.contents; // The actual CSV text
+
         const parsedData = parseCSV(data);
 
         if (parsedData.length > 0) {
